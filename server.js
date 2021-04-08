@@ -97,13 +97,14 @@ router.route('/movies')
         else {
             if (req.body.actors.length < 3) {
                 // there must be 3 actors per movie
-                res.json({success: false, msg: 'You must include 3 or more actors.'})
+                res.json({success: false, msg: 'You must include 3 actors.'})
             } else {
                 let newMovie  = new Movie();
                 newMovie.title = req.body.title;
                 newMovie.releaseYear = req.body.releaseYear;
                 newMovie.genre = req.body.genre;
                 newMovie.actors = req.body.actors;
+                newMovie.imageURL = req.body.imageURL;
 
                 newMovie.save(function(err) {
                     if (err) {
@@ -143,7 +144,7 @@ router.route('/movies')
                 else {
                     if (movie) {
                         if(req.body.releaseYear){
-                            movie.year = req.body.releaseYear;
+                            movie.releaseYear = req.body.releaseYear;
                         }
                         if(req.body.genre){
                             movie.genre = req.body.genre;
