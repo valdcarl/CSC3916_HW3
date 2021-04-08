@@ -87,109 +87,91 @@ router.post('/signin', function (req, res) {
         })
     })
 });
-// movies
 router.route('/movies')
-    //we need to be able to save a movie to our mongodb 'movies' collection
-    .post(authJwtController.isAuthenticated, function (req, res) {
-        if (!req.body.title || !req.body.releaseYear || !req.body.genre || !req.body.actors) {
-            res.json({success: false, msg: 'You must include all criteria requested to input a movie.'})
+
+    //Get the movies
+    .get(function (req, res) {
+            Movie.find({}, function (err,movies) {
+                if (err) throw err;
+                else
+                    console.log(movies);
+                    res = res.status(200);
+                    res.json({success: true, msg: 'GET movies.'});
+            });
+        }
+    )
+
+    //Save movies
+    .post( authJwtController.isAuthenticated, function (req, res) {
+        if (!req.body.title || !req.body.genre || !req.body.releaseYear || !req.body.actors) {
+            res.json({success: false, msg: 'Please pass in all 4 required criteria in order to save a movie!'});
         }
         else {
-            if (req.body.actors.length < 3) {
-                // there must be 3 actors per movie
-                res.json({success: false, msg: 'You must include 3 actors.'})
-            } else {
-                let newMovie  = new Movie();
-                newMovie.title = req.body.title;
-                newMovie.releaseYear = req.body.releaseYear;
-                newMovie.genre = req.body.genre;
-                newMovie.actors = req.body.actors;
-                newMovie.imageURL = req.body.imageURL;
+            if(req.body.actors.length < 3) {
+                res.json({ success: false, message: 'Please include at least three actors.'});
+            }
+            else {
+                var movie = new Movie();
+                movie.title = req.body.title;
+                movie.releaseYear = req.body.releaseYear;
+                movie.genre = req.body.genre;
+                movie.actors = req.body.actors;
 
-                newMovie.save(function(err) {
+                movie.save(function(err, movies) {
                     if (err) {
                         if (err.code == 11000)
-                            return res.json({success: false, msg: 'That movie title already exists.'});
+                            return res.json({ success: false, message: 'A movie with that title already exists.'});
                         else
-                            return res.json(err);
-
+                            return res.send(err);
                     }
-
-                    res.json({success: true, msg: 'Movie successfully saved.'})
-                })
+                    res.json({ message: 'Movie has been successfully created.' });
+                });
             }
         }
     })
-    .get(authJwtController.isAuthenticated, function(req, res) {
-        //we need to be able to return all of the movies in the collection
-        Movie.find(function(err, movies) {
-            if (err) {
-               return res.json(err);
-            } else {
-                res.json(movies);
-            }
-        });
-    })
-    .put(authJwtController.isAuthenticated, function(req, res) {
-        //we need to be able to update movies as well
-        //lets find the movies by title
+
+    //Update movies
+   .put(authJwtController.isAuthenticated, function(req, res) {
+       if (!req.body.title) {
+           res.json({success: false, msg: 'Please pass a Movie Title to update.'});
+       } else {
+           Movie.findOne({title: req.body.title}, function (err, movies) {
+               if (err) throw err;
+               else {
+                   //var movie = new Movie();
+                   movies.title = req.body.title;
+                   movies.releaseYear = req.body.releaseYear;
+                   movies.genre = req.body.genre;
+                   movies.actors = req.body.actors;
+                   movies.imageURL = req.body.imageURL;
+
+                   movies.save(function (err) {
+                       if (err) throw err;
+
+                       res.json({success: true, msg: 'Movie has been successfully updated.'});
+                   })
+               }
+           })
+       }
+   })
+
+    //delete a movie
+    .delete(authJwtController.isAuthenticated, function(req, res) {
         if (!req.body.title) {
-            return res.json({success: false, msg: 'That title does not exist, try again with applicable title.'})
+            res.json({success: false, msg: 'Please input the an existing movie title to delete.'});
         }
         else {
-            Movie.findOne({title: req.body.title}).exec(function (err, movie) {
-                if (err) {
-                    res.send(err);
-                }
-                else {
-                    if (movie) {
-                        if(req.body.releaseYear){
-                            movie.releaseYear = req.body.releaseYear;
-                        }
-                        if(req.body.genre){
-                            movie.genre = req.body.genre;
-                        }
-                        if(req.body.actors){
-                            //check if user input at least 3 actors again
-                            if(req.body.actors.length < 3){
-                                return res.json({success: false, msg: 'You must include 3 or more actors.'})
-                            }// otherwise we are good
-                            movie.actors = req.body.actors;
-                        }
-
-                        movie.save(function (err) {
-                            if (err) {
-                                return res.json(err);
-                            }
-                            res.json({success: true, msg: 'Movie has been updated.'})
-                        })
-                    }
-                    else {
-                        return res.json({success: false, msg: 'That title does not exist, cannot update.'})
-                    }
-                }
-            });
-        }
-    })
-    .delete(authJwtController.isAuthenticated, function(req, res) {
-        // we need to be able to delete a movie from the collection as well
-        if (!req.body.title){
-            return res.json({success: false, msg: 'That title does not exist, try again with applicable title to delete.'})
-        } else {
-            Movie.findOneAndDelete({title: req.body.title}, function(err, movie) {
-                if (err) {
-                    res.send(err);
-                } else if(!movie) {
-                    return res.json({success: false, msg: 'That title does not exist.'})
-                } else {
-                    return res.json({success: true, msg: 'Movie successfully deleted.'})
-                }
-            });
+            Movie.findOneAndRemove({title: req.body.title}, function (err) {
+                if (err) throw err;
+                res.json({success: true, msg: 'Movie has been successfully deleted.'});
+            })
+                //}
+            //})
         }
     });
+
 
 app.use('/', router);
 app.listen(process.env.PORT || 8080);
 module.exports = app; // for testing only
-
 
